@@ -23,6 +23,8 @@ game.state.add('play', {
         game.load.image('snake', 'assets/allacrost_enemy_sprites/snake.png');
         game.load.image('spider', 'assets/allacrost_enemy_sprites/spider.png');
         game.load.image('stygian_lizard', 'assets/allacrost_enemy_sprites/stygian_lizard.png');
+
+        game.load.image('gold_coin', 'assets/496_RPG_icons/I_GoldCoin.png');
     },
     create: function () {
         var state = this;
@@ -109,14 +111,29 @@ game.state.add('play', {
                 .to({
                     alpha: 0,
                     y: 100,
-                    x: this.game.rnd.integerInRange(100,700)
+                    x: this.game.rnd.integerInRange(100, 700)
                 }, 1000, Phaser.Easing.Cubic.Out);
 
-            dmgText.tween.onComplete.add(function(text, tween) {
+            dmgText.tween.onComplete.add(function (text, tween) {
                 text.kill();
             });
             this.dmgTextPool.add(dmgText);
         }
+
+        // Create a pool of gold coins
+        this.coins = this.add.group();
+        this.coins.createMultiple(50, 'gold_coin', '', false);
+        this.coins.setAll('inputEnabled', true);
+        this.coins.setAll('goldValue', 1);
+        this.coins.callAll('events.onInputDown.add', 'events.onInputDown', this.onClickCoin, this);
+
+        this.playerGoldText = this.add.text(30, 30, 'Gold: ' + this.player.gold, {
+            font: '24px Arial Black',
+            fill: '#fff',
+            strokeThickness: 4
+        });
+
+        
         //var skeletonSprite = game.add.sprite(450, 290, 'skeleton');
         //skeletonSprite.anchor.setTo(0.5, 0.5);
 
@@ -151,6 +168,13 @@ game.state.add('play', {
         this.currentMonster = this.monsters.getRandom();
         // Make sure new monster is at full health
         this.currentMonster.revive(this.currentMonster.maxHealth);
+
+        var coin;
+        // Spawn a coin on ground
+        coin = this.coins.getFirstExists(false);
+        coin.reset(this.game.world.centerX + this.game.rnd.integerInRange(-100, 100), this.game.world.centerY);
+        coin.goldValue = 1;
+        this.game.time.events.add(Phaser.Timer.SECOND * 3, this.onClickCoin, this, coin);
     },
 
     onRevivedMonster: function (monster) {
@@ -159,6 +183,18 @@ game.state.add('play', {
         // Update text display
         this.monsterNameText.text = monster.details.name;
         this.monsterHealthText.text = monster.health + ' HP';
+    },
+
+    onClickCoin: function (coin) {
+        if (!coin.alive) {
+            return;
+        }
+        // Give the player gold
+        this.player.gold += coin.goldValue;
+        // Update UI
+        this.playerGoldText.text = 'Gold :' + this.player.gold;
+        // Remove the coin
+        coin.kill();
     }
 });
 
