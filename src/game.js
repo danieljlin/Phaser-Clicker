@@ -25,6 +25,31 @@ game.state.add('play', {
         game.load.image('stygian_lizard', 'assets/allacrost_enemy_sprites/stygian_lizard.png');
 
         game.load.image('gold_coin', 'assets/496_RPG_icons/I_GoldCoin.png');
+
+        game.load.image('dagger', 'assets/496_RPG_icons/W_Dagger002.png');
+
+        // Build panel for upgrades
+        var bmd = this.game.add.bitmapData(250, 500);
+        bmd.ctx.fillStyle = '#9a783d';
+        bmd.ctx.strokeStyle = '#35371c';
+        bmd.ctx.lineWidth = 12;
+        bmd.ctx.fillRect(0, 0, 250, 500);
+        bmd.ctx.strokeRect(0, 0, 250, 500);
+        this.game.cache.addBitmapData('upgradePanel', bmd);
+
+        var buttonImage = this.game.add.bitmapData(476, 48);
+        buttonImage.ctx.fillStyle = '#e6dec7';
+        buttonImage.ctx.strokeStyle = '#35371c';
+        buttonImage.ctx.lineWidth = 4;
+        buttonImage.ctx.fillRect(0, 0, 225, 48);
+        buttonImage.ctx.strokeRect(0, 0, 225, 48);
+        this.game.cache.addBitmapData('button', buttonImage);
+
+        // The Main Player
+        this.player = {
+            clickDmg: 1,
+            gold: 0
+        }
     },
     create: function () {
         var state = this;
@@ -36,6 +61,20 @@ game.state.add('play', {
                     state.game.world.height, image, '', state.background);
                 bg.tileScale.setTo(4, 4);
             });
+
+        this.upgradePanel = this.game.add.image(10, 70, this.game.cache.getBitmapData('upgradePanel'));
+        var upgradeButtons = this.upgradePanel.addChild(this.game.add.group());
+        upgradeButtons.position.setTo(8, 8);
+
+        var button;
+        button = this.game.add.button(0, 0, this.game.cache.getBitmapData('button'));
+        button.icon = button.addChild(this.game.add.image(6, 6, 'dagger'));
+        button.text = button.addChild(this.game.add.text(42, 6, 'Attack: ' + this.player.clickDmg, { font: '16px Arial Black' }));
+        button.details = { cost: 5 };
+        button.costText = button.addChild(this.game.add.text(42, 24, 'Cost: ' + button.details.cost, { font: '16px Arial Black' }));
+        button.events.onInputDown.add(this.onUpgradeButtonClick, this);
+        upgradeButtons.addChild(button);
+
         var monsterData = [
             { name: 'Aerocephal', image: 'aerocephal', maxHealth: 10 },
             { name: 'Arcana Drake', image: 'arcana_drake', maxHealth: 20 },
@@ -58,7 +97,7 @@ game.state.add('play', {
         var monster;
         monsterData.forEach(function (data) {
             // Create a sprite for them off screen
-            monster = state.monsters.create(1000, game.world.centerY, data.image);
+            monster = state.monsters.create(1000, state.game.world.centerY, data.image);
             // Center anchor
             monster.anchor.setTo(0.5);
             // Reference to the database
@@ -90,12 +129,6 @@ game.state.add('play', {
             fill: '#ff0000',
             strokeThickness: 4
         }));
-
-        // The Main Player
-        this.player = {
-            clickDmg: 1,
-            gold: 0
-        }
 
         this.dmgTextPool = this.add.group();
         var dmgText;
@@ -133,7 +166,7 @@ game.state.add('play', {
             strokeThickness: 4
         });
 
-        
+
         //var skeletonSprite = game.add.sprite(450, 290, 'skeleton');
         //skeletonSprite.anchor.setTo(0.5, 0.5);
 
@@ -192,9 +225,18 @@ game.state.add('play', {
         // Give the player gold
         this.player.gold += coin.goldValue;
         // Update UI
-        this.playerGoldText.text = 'Gold :' + this.player.gold;
+        this.playerGoldText.text = 'Gold: ' + this.player.gold;
         // Remove the coin
         coin.kill();
+    },
+
+    onUpgradeButtonClick: function (button, pointer) {
+        if (this.player.gold - button.details.cost >= 0) {
+            this.player.gold -= button.details.cost;
+            this.playerGoldText.text = 'Gold: ' + this.player.gold;
+            this.player.clickDmg++;
+            button.text.text = 'Attack: ' + this.player.clickDmg;
+        }
     }
 });
 
