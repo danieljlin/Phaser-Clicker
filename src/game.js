@@ -27,6 +27,7 @@ game.state.add('play', {
         game.load.image('gold_coin', 'assets/496_RPG_icons/I_GoldCoin.png');
 
         game.load.image('dagger', 'assets/496_RPG_icons/W_Dagger002.png');
+        game.load.image('swordIcon1', 'assets/496_RPG_icons/S_Sword15.png');
 
         // Build panel for upgrades
         var bmd = this.game.add.bitmapData(250, 500);
@@ -47,8 +48,9 @@ game.state.add('play', {
 
         // The Main Player
         this.player = {
+            gold: 0,
             clickDmg: 1,
-            gold: 0
+            dps: 0
         }
     },
     create: function () {
@@ -66,14 +68,21 @@ game.state.add('play', {
         var upgradeButtons = this.upgradePanel.addChild(this.game.add.group());
         upgradeButtons.position.setTo(8, 8);
 
+        var upgradeButtonsData = [
+            { icon: 'dagger', name: 'Attack', level: 1, cost: 1, purchaseHandler: function (button, player) { player.clickDmg += 1; } },
+            { icon: 'swordIcon1', name: 'Auto-Attack', level: 0, cost: 2, purchaseHandler: function (button, player) { player.dps += 1; } }
+        ];
+
         var button;
-        button = this.game.add.button(0, 0, this.game.cache.getBitmapData('button'));
-        button.icon = button.addChild(this.game.add.image(6, 6, 'dagger'));
-        button.text = button.addChild(this.game.add.text(42, 6, 'Attack: ' + this.player.clickDmg, { font: '16px Arial Black' }));
-        button.details = { cost: 5 };
-        button.costText = button.addChild(this.game.add.text(42, 24, 'Cost: ' + button.details.cost, { font: '16px Arial Black' }));
-        button.events.onInputDown.add(this.onUpgradeButtonClick, this);
-        upgradeButtons.addChild(button);
+        upgradeButtonsData.forEach(function(buttonData, index) {
+            button = state.game.add.button(0, 50 * index, state.game.cache.getBitmapData('button'));
+            button.details = buttonData;
+            button.icon = button.addChild(state.game.add.image(6, 6, buttonData.icon));
+            button.text = button.addChild(state.game.add.text(42, 6, buttonData.name + ': ' + buttonData.level, {font: '16px Arial Black'}));
+            button.costText = button.addChild(state.game.add.text(42, 24, 'Cost: ' + buttonData.cost, {font: '16px Arial Black'}));
+            button.events.onInputDown.add(state.onUpgradeButtonClick, state);
+            upgradeButtons.addChild(button);
+        });
 
         var monsterData = [
             { name: 'Aerocephal', image: 'aerocephal', maxHealth: 10 },
@@ -166,9 +175,7 @@ game.state.add('play', {
             strokeThickness: 4
         });
 
-
-        //var skeletonSprite = game.add.sprite(450, 290, 'skeleton');
-        //skeletonSprite.anchor.setTo(0.5, 0.5);
+        this.dpsTimer = this.game.time.events.loop(100, this.onDPS, this);
 
     },
     render: function () {
@@ -234,8 +241,20 @@ game.state.add('play', {
         if (this.player.gold - button.details.cost >= 0) {
             this.player.gold -= button.details.cost;
             this.playerGoldText.text = 'Gold: ' + this.player.gold;
-            this.player.clickDmg++;
-            button.text.text = 'Attack: ' + this.player.clickDmg;
+            button.details.level++;
+            button.text.text = button.details.name + ': ' + button.details.level;
+            button.details.purchaseHandler.call(this, button, this.player);
+        }
+    },
+
+    onDPS: function() {
+        if (this.player.dps > 0 ) {
+            if (this.currentMonster.alive) {
+                var dmg = this.player.dps / 10;
+                this.currentMonster.damage(dmg);
+                // Update health text
+                this.monsterHealthText.text = this.currentMonster.alive ? Math.round(this.currentMonster.health) + ' HP' : 'DEAD';
+            }
         }
     }
 });
