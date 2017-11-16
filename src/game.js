@@ -52,6 +52,13 @@ game.state.add('play', {
             clickDmg: 1,
             dps: 0
         }
+
+        // World progression
+        this.level = 1;
+        // # of monsters killed this level
+        this.levelKills = 0;
+        // # of monsters required to advance a level
+        this.levelKillsRequired = 10;
     },
     create: function () {
         var state = this;
@@ -69,7 +76,7 @@ game.state.add('play', {
         upgradeButtons.position.setTo(8, 8);
 
         var upgradeButtonsData = [
-            { icon: 'dagger', name: 'Attack', level: 1, cost: 1, purchaseHandler: function (button, player) { player.clickDmg += 1; } },
+            { icon: 'dagger', name: 'Attack', level: 1, cost: 0, purchaseHandler: function (button, player) { player.clickDmg += 1; } },
             { icon: 'swordIcon1', name: 'Auto-Attack', level: 0, cost: 2, purchaseHandler: function (button, player) { player.dps += 1; } }
         ];
 
@@ -177,6 +184,19 @@ game.state.add('play', {
 
         this.dpsTimer = this.game.time.events.loop(100, this.onDPS, this);
 
+        // Set up the world progression display
+        this.levelUI = this.game.add.group();
+        this.levelUI.position.setTo(this.game.world.centerX, 30);
+        this.levelText = this.levelUI.addChild(this.game.add.text(0, 0, 'Level: ' + this.level, {
+            font: '24px Arial Black',
+            fill: '#fff',
+            strokeThickness: 4
+        }));
+        this.levelKillsText = this.levelUI.addChild(this.game.add.text(0, 30, 'Kills: ' + this.levelKills, {
+            font: '24px Arial Black',
+            fill: '#fff',
+            strokeThickness: 4
+        }));
     },
     render: function () {
         //game.debug.text('Adventure Awaits!', 250, 290);
@@ -204,17 +224,29 @@ game.state.add('play', {
     onKilledMonster: function (monster) {
         // Move monster off screen
         monster.position.set(1000, this.game.world.centerY);
-        // Pick new monster
-        this.currentMonster = this.monsters.getRandom();
-        // Make sure new monster is at full health
-        this.currentMonster.revive(this.currentMonster.maxHealth);
 
         var coin;
         // Spawn a coin on ground
         coin = this.coins.getFirstExists(false);
         coin.reset(this.game.world.centerX + this.game.rnd.integerInRange(-100, 100), this.game.world.centerY);
-        coin.goldValue = 1;
+        coin.goldValue = Math.round(this.level * 1.33);
         this.game.time.events.add(Phaser.Timer.SECOND * 3, this.onClickCoin, this, coin);
+
+        this.levelKills++;
+        if (this.levelKills >= this.levelKillsRequired) {
+            this.level++;
+            this.levelKills = 0;
+        }
+
+        this.levelText.text = 'Level: ' + this.level;
+        this.levelKillsText.text = 'Kills: ' + this.levelKills + '/' + this.levelKillsRequired;
+
+        // Pick new monster
+        this.currentMonster = this.monsters.getRandom();
+        // Upgrade monster based on level
+        this.currentMonster.maxHealth = Math.ceil(this.currentMonster.details.maxHealth + ((this.level -1 ) * 10.6));
+        // Make sure new monster is at full health
+        this.currentMonster.revive(this.currentMonster.maxHealth);
     },
 
     onRevivedMonster: function (monster) {
@@ -238,11 +270,17 @@ game.state.add('play', {
     },
 
     onUpgradeButtonClick: function (button, pointer) {
-        if (this.player.gold - button.details.cost >= 0) {
-            this.player.gold -= button.details.cost;
+        // Make this a function so that it updates after upgrade
+        function getAdjustedCost() {
+            return Math.ceil(button.details.cost + (button.details.level * 1.46));
+        }
+
+        if (this.player.gold >= getAdjustedCost()) {
+            this.player.gold -= getAdjustedCost();
             this.playerGoldText.text = 'Gold: ' + this.player.gold;
             button.details.level++;
             button.text.text = button.details.name + ': ' + button.details.level;
+            button.costText.text = 'Cost: ' + getAdjustedCost();
             button.details.purchaseHandler.call(this, button, this.player);
         }
     },
