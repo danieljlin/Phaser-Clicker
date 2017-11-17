@@ -30,21 +30,21 @@ game.state.add('play', {
         game.load.image('swordIcon1', 'assets/496_RPG_icons/S_Sword15.png');
 
         // Build panel for upgrades
-        var bmd = this.game.add.bitmapData(250, 500);
+        var bmd = game.add.bitmapData(250, 500);
         bmd.ctx.fillStyle = '#9a783d';
         bmd.ctx.strokeStyle = '#35371c';
         bmd.ctx.lineWidth = 12;
         bmd.ctx.fillRect(0, 0, 250, 500);
         bmd.ctx.strokeRect(0, 0, 250, 500);
-        this.game.cache.addBitmapData('upgradePanel', bmd);
+        game.cache.addBitmapData('upgradePanel', bmd);
 
-        var buttonImage = this.game.add.bitmapData(476, 48);
+        var buttonImage = game.add.bitmapData(476, 48);
         buttonImage.ctx.fillStyle = '#e6dec7';
         buttonImage.ctx.strokeStyle = '#35371c';
         buttonImage.ctx.lineWidth = 4;
         buttonImage.ctx.fillRect(0, 0, 225, 48);
         buttonImage.ctx.strokeRect(0, 0, 225, 48);
-        this.game.cache.addBitmapData('button', buttonImage);
+        game.cache.addBitmapData('button', buttonImage);
 
         // The Main Player
         this.player = {
@@ -62,31 +62,38 @@ game.state.add('play', {
     },
     create: function () {
         var state = this;
-        this.background = this.game.add.group();
+        var background = game.add.group();
         // set up each of our background layers to take the full screen
         ['forest-back', 'forest-lights', 'forest-middle', 'forest-front']
             .forEach(function (image) {
-                var bg = state.game.add.tileSprite(0, 0, state.game.world.width,
-                    state.game.world.height, image, '', state.background);
+                var bg = game.add.tileSprite(0, 0, game.world.width,
+                    game.world.height, image, '', background);
                 bg.tileScale.setTo(4, 4);
             });
 
-        this.upgradePanel = this.game.add.image(10, 70, this.game.cache.getBitmapData('upgradePanel'));
-        var upgradeButtons = this.upgradePanel.addChild(this.game.add.group());
-        upgradeButtons.position.setTo(8, 8);
+        upgradePanel = game.add.image(10, 70, game.cache.getBitmapData('upgradePanel'));
+
+        playerInfoUI = upgradePanel.addChild(game.add.group());
+        playerInfoUI.position.setTo(8, 8);
+        playerInfoUI.ClickDmgText = playerInfoUI.addChild(game.add.text(6, 6, 'Click Damage: ' + this.player.clickDmg, { font: '16px Arial Black' }));
+        playerInfoUI.DPSText = playerInfoUI.addChild(game.add.text(6, 24, 'Damage Per Second: ' + this.player.dps, { font: '16px Arial Black' }));
+        // upgradePanel.addChild(playerInfoUI);
+
+        var upgradeButtons = upgradePanel.addChild(game.add.group());
+        upgradeButtons.position.setTo(8, 58);
 
         var upgradeButtonsData = [
-            { icon: 'dagger', name: 'Attack', level: 1, cost: 0, purchaseHandler: function (button, player) { player.clickDmg += 1; } },
+            { icon: 'dagger', name: 'Attack', level: 0, cost: 1, purchaseHandler: function (button, player) { player.clickDmg += 1; } },
             { icon: 'swordIcon1', name: 'Auto-Attack', level: 0, cost: 2, purchaseHandler: function (button, player) { player.dps += 1; } }
         ];
 
         var button;
-        upgradeButtonsData.forEach(function(buttonData, index) {
+        upgradeButtonsData.forEach(function (buttonData, index) {
             button = state.game.add.button(0, 50 * index, state.game.cache.getBitmapData('button'));
             button.details = buttonData;
             button.icon = button.addChild(state.game.add.image(6, 6, buttonData.icon));
-            button.text = button.addChild(state.game.add.text(42, 6, buttonData.name + ': ' + buttonData.level, {font: '16px Arial Black'}));
-            button.costText = button.addChild(state.game.add.text(42, 24, 'Cost: ' + buttonData.cost, {font: '16px Arial Black'}));
+            button.text = button.addChild(state.game.add.text(42, 6, 'Lvl. ' + buttonData.level + ' ' + buttonData.name, { font: '16px Arial Black' }));
+            button.costText = button.addChild(state.game.add.text(42, 24, 'Cost: ' + buttonData.cost, { font: '16px Arial Black' }));
             button.events.onInputDown.add(state.onUpgradeButtonClick, state);
             upgradeButtons.addChild(button);
         });
@@ -109,7 +116,7 @@ game.state.add('play', {
             { name: 'Spider', image: 'spider', maxHealth: 4 },
             { name: 'Stygian Lizard', image: 'stygian_lizard', maxHealth: 20 }
         ]
-        this.monsters = this.game.add.group();
+        state.monsters = game.add.group();
         var monster;
         monsterData.forEach(function (data) {
             // Create a sprite for them off screen
@@ -130,17 +137,18 @@ game.state.add('play', {
             monster.events.onInputDown.add(state.onClickMonster, state);
         });
 
-        this.currentMonster = this.monsters.getRandom();
-        this.currentMonster.position.set(this.game.world.centerX + 100, this.game.world.centerY);
+        this.currentMonster = state.monsters.getRandom();
+        this.currentMonster.position.set(game.world.centerX + 100, game.world.centerY);
 
-        this.monsterInfoUI = this.game.add.group();
+
+        this.monsterInfoUI = game.add.group();
         this.monsterInfoUI.position.setTo(this.currentMonster.x - 220, this.currentMonster.y + 120);
-        this.monsterNameText = this.monsterInfoUI.addChild(this.game.add.text(0, 0, this.currentMonster.details.name, {
+        this.monsterNameText = this.monsterInfoUI.addChild(game.add.text(0, 0, this.currentMonster.details.name, {
             font: '48px Arial Black',
             fill: '#fff',
             strokeThickness: 4
         }));
-        this.monsterHealthText = this.monsterInfoUI.addChild(this.game.add.text(0, 80, this.currentMonster.health + ' HP', {
+        this.monsterHealthText = this.monsterInfoUI.addChild(game.add.text(0, 80, this.currentMonster.health + ' HP', {
             font: '32px Arial Black',
             fill: '#ff0000',
             strokeThickness: 4
@@ -160,7 +168,7 @@ game.state.add('play', {
                 .to({
                     alpha: 0,
                     y: 100,
-                    x: this.game.rnd.integerInRange(100, 700)
+                    x: game.rnd.integerInRange(100, 700)
                 }, 1000, Phaser.Easing.Cubic.Out);
 
             dmgText.tween.onComplete.add(function (text, tween) {
@@ -182,17 +190,17 @@ game.state.add('play', {
             strokeThickness: 4
         });
 
-        this.dpsTimer = this.game.time.events.loop(100, this.onDPS, this);
+        this.dpsTimer = game.time.events.loop(100, this.onDPS, this);
 
         // Set up the world progression display
-        this.levelUI = this.game.add.group();
-        this.levelUI.position.setTo(this.game.world.centerX, 30);
-        this.levelText = this.levelUI.addChild(this.game.add.text(0, 0, 'Level: ' + this.level, {
+        this.levelUI = game.add.group();
+        this.levelUI.position.setTo(game.world.centerX, 30);
+        this.levelText = this.levelUI.addChild(game.add.text(0, 0, 'Level: ' + this.level, {
             font: '24px Arial Black',
             fill: '#fff',
             strokeThickness: 4
         }));
-        this.levelKillsText = this.levelUI.addChild(this.game.add.text(0, 30, 'Kills: ' + this.levelKills, {
+        this.levelKillsText = this.levelUI.addChild(game.add.text(0, 30, 'Kills: ' + this.levelKills, {
             font: '24px Arial Black',
             fill: '#fff',
             strokeThickness: 4
@@ -201,15 +209,13 @@ game.state.add('play', {
     render: function () {
         //game.debug.text('Adventure Awaits!', 250, 290);
         // game.debug.text(this.currentMonster.details.name, 
-        //     this.game.world.centerX - this.currentMonster.width/2, 
-        //     this.game.world.centerY + this.currentMonster.height/2);
+        //     game.world.centerX - this.currentMonster.width/2, 
+        //     game.world.centerY + this.currentMonster.height/2);
     },
 
     onClickMonster: function (monster, pointer) {
         // Apply click damage to monster
         this.currentMonster.damage(this.player.clickDmg);
-        // Update health text
-        this.monsterHealthText.text = this.currentMonster.alive ? this.currentMonster.health + ' HP' : 'DEAD';
 
         // Grab a damage text from the pool to display what happened
         var dmgText = this.dmgTextPool.getFirstExists(false);
@@ -219,18 +225,21 @@ game.state.add('play', {
             dmgText.alpha = 1;
             dmgText.tween.start();
         }
+
+        // Update health text
+        this.monsterHealthText.text = this.currentMonster.alive ? this.currentMonster.health + ' HP' : 'DEAD';
     },
 
     onKilledMonster: function (monster) {
         // Move monster off screen
-        monster.position.set(1000, this.game.world.centerY);
+        monster.position.set(1000, game.world.centerY);
 
         var coin;
         // Spawn a coin on ground
         coin = this.coins.getFirstExists(false);
-        coin.reset(this.game.world.centerX + this.game.rnd.integerInRange(-100, 100), this.game.world.centerY);
+        coin.reset(game.world.centerX + game.rnd.integerInRange(-100, 100), game.world.centerY);
         coin.goldValue = Math.round(this.level * 1.33);
-        this.game.time.events.add(Phaser.Timer.SECOND * 3, this.onClickCoin, this, coin);
+        game.time.events.add(Phaser.Timer.SECOND * 3, this.onClickCoin, this, coin);
 
         this.levelKills++;
         if (this.levelKills >= this.levelKillsRequired) {
@@ -244,14 +253,14 @@ game.state.add('play', {
         // Pick new monster
         this.currentMonster = this.monsters.getRandom();
         // Upgrade monster based on level
-        this.currentMonster.maxHealth = Math.ceil(this.currentMonster.details.maxHealth + ((this.level -1 ) * 10.6));
+        this.currentMonster.maxHealth = Math.ceil(this.currentMonster.details.maxHealth + ((this.level - 1) * 10.6));
         // Make sure new monster is at full health
         this.currentMonster.revive(this.currentMonster.maxHealth);
     },
 
     onRevivedMonster: function (monster) {
         // Move new monster on screen
-        monster.position.set(this.game.world.centerX + 100, this.game.world.centerY);
+        monster.position.set(game.world.centerX + 100, game.world.centerY);
         // Update text display
         this.monsterNameText.text = monster.details.name;
         this.monsterHealthText.text = monster.health + ' HP';
@@ -279,15 +288,17 @@ game.state.add('play', {
             this.player.gold -= getAdjustedCost();
             this.playerGoldText.text = 'Gold: ' + this.player.gold;
             button.details.level++;
-            button.text.text = button.details.name + ': ' + button.details.level;
+            button.text.text = 'Lvl. ' + button.details.level + ' ' + button.details.name;
             button.costText.text = 'Cost: ' + getAdjustedCost();
             button.details.purchaseHandler.call(this, button, this.player);
+            playerInfoUI.ClickDmgText.text = 'Click Damage: ' + this.player.clickDmg;
+            playerInfoUI.DPSText.text = 'Damage Per Second: ' + this.player.dps;            
         }
     },
 
-    onDPS: function() {
-        if (this.player.dps > 0 ) {
-            if (this.currentMonster.alive) {
+    onDPS: function () {
+        if (this.player.dps > 0) {
+            if (this.currentMonster && this.currentMonster.alive) {
                 var dmg = this.player.dps / 10;
                 this.currentMonster.damage(dmg);
                 // Update health text
